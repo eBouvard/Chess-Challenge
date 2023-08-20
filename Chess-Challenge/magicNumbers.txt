@@ -1,0 +1,3 @@
+MagicNumberFen: 1234567890
+MagicNumbersW: 0,1,3,3,5,9,0
+MagicNumbersB: 0,2,3,4,5,9,1
