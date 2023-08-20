@@ -2,22 +2,29 @@ import numpy as np
 import json
 import os
 
+
 class MagicNumbers:
     def __init__(
         self,
         magicNumberFen: np.int64,
-        magicNumbersW: list[np.int64],
-        magicNumbersB: list[np.int64],
+        magicNumbersW_T: list[np.int64],
+        magicNumbersB_T: list[np.int64],
+        magicNumbersW_B: list[np.int64],
+        magicNumbersB_B: list[np.int64],
         fromRandom=False,
     ):
         if fromRandom:
             self.magicNumberFen = np.random.randint(-(2**30), 2**30)
-            self.magicNumbersW = np.random.randint(-(2**30), 2**30, 7)
-            self.magicNumbersB = np.random.randint(-(2**30), 2**30, 7)
+            self.magicNumbersW_T = np.random.randint(-(2**30), 2**30, 7)
+            self.magicNumbersB_T = np.random.randint(-(2**30), 2**30, 7)
+            self.magicNumbersW_B = np.random.randint(-(2**30), 2**30, 7)
+            self.magicNumbersB_B = np.random.randint(-(2**30), 2**30, 7)
         else:
             self.magicNumberFen = magicNumberFen
-            self.magicNumbersW = magicNumbersW
-            self.magicNumbersB = magicNumbersB
+            self.magicNumbersW_T = magicNumbersW_T
+            self.magicNumbersB_T = magicNumbersB_T
+            self.magicNumbersW_B = magicNumbersW_B
+            self.magicNumbersB_B = magicNumbersB_B
 
 
 class GeneticAlgorithm:
@@ -27,7 +34,7 @@ class GeneticAlgorithm:
 
     def initialize_population(self):
         return [
-            MagicNumbers(None, None, None, fromRandom=True)
+            MagicNumbers(None, None, None, None, None, fromRandom=True)
             for _ in range(self.population_size)
         ]
 
@@ -36,7 +43,11 @@ class GeneticAlgorithm:
             data = json.load(f)
             return [
                 MagicNumbers(
-                    item["magicNumberFen"], item["magicNumbersW"], item["magicNumbersB"]
+                    item["magicNumberFen"],
+                    item["magicNumbersW_T"],
+                    item["magicNumbersB_T"],
+                    item["magicNumbersW_B"],
+                    item["magicNumbersB_B"],
                 )
                 for item in data
             ]
@@ -45,8 +56,10 @@ class GeneticAlgorithm:
         data = [
             {
                 "magicNumberFen": p.magicNumberFen,
-                "magicNumbersW": p.magicNumbersW.tolist(),
-                "magicNumbersB": p.magicNumbersB.tolist(),
+                "magicNumbersW_T": p.magicNumbersW_T.tolist(),
+                "magicNumbersB_T": p.magicNumbersB_T.tolist(),
+                "magicNumbersW_B": p.magicNumbersW_B.tolist(),
+                "magicNumbersB_B": p.magicNumbersB_B.tolist(),
             }
             for p in population
         ]
@@ -67,24 +80,32 @@ class GeneticAlgorithm:
     def crossover(self, parent1, parent2):
         if np.random.rand() > 0.5:
             return MagicNumbers(
-                parent1.magicNumberFen, parent2.magicNumbersW, parent2.magicNumbersB
+                parent1.magicNumberFen,
+                parent2.magicNumbersW_T,
+                parent2.magicNumbersB_T,
+                parent2.magicNumbersW_B,
+                parent2.magicNumbersB_B,
             )
         else:
             return MagicNumbers(
-                parent2.magicNumberFen, parent1.magicNumbersW, parent1.magicNumbersB
+                parent2.magicNumberFen,
+                parent1.magicNumbersW_T,
+                parent1.magicNumbersB_T,
+                parent1.magicNumbersW_B,
+                parent1.magicNumbersB_B,
             )
 
     def mutate(self, child):
         if np.random.rand() < self.mutation_rate:
             child.magicNumberFen = np.random.randint(-(2**30), 2**30)
         if np.random.rand() < self.mutation_rate:
-            child.magicNumbersW[np.random.randint(0, 7)] = np.random.randint(
-                -(2**30), 2**30
-            )
+            child.magicNumbersW_T = np.random.randint(-(2**30), 2**30, 7)
         if np.random.rand() < self.mutation_rate:
-            child.magicNumbersB[np.random.randint(0, 7)] = np.random.randint(
-                -(2**30), 2**30
-            )
+            child.magicNumbersB_T = np.random.randint(-(2**30), 2**30, 7)
+        if np.random.rand() < self.mutation_rate:
+            child.magicNumbersW_B = np.random.randint(-(2**30), 2**30, 7)
+        if np.random.rand() < self.mutation_rate:
+            child.magicNumbersB_B = np.random.randint(-(2**30), 2**30, 7)
         return child
 
     def evolve(self):

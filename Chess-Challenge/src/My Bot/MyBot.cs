@@ -14,9 +14,14 @@ using System.Linq;
 public class MyBot : IChessBot
 {
 
-    static ulong magicNumberFen = 1;
-    static ulong[] magicNumbersW = { 0, 1, 3, 3, 5, 9, 0 };
-    static ulong[] magicNumbersB = { 0, 1, 3, 3, 5, 9, 0 };
+    long magicNumberFen = 1;
+    long[] magicNumbersWTop = { 0, 1, 3, 3, 5, 9, 0 };
+    long[] magicNumbersBTop = { 0, 1, 3, 3, 5, 9, 0 };
+    long[] magicNumbersWBot = { 0, 1, 3, 3, 5, 9, 0 };
+    long[] magicNumbersBBot = { 0, 1, 3, 3, 5, 9, 0 };
+
+
+    // --- ONLY FOR TRAINING, TO DELETE LATER
     public MyBot()
     {
         LoadMagicNumbersFromFile("magicNumbers.txt");
@@ -38,13 +43,19 @@ public class MyBot : IChessBot
                 switch (key)
                 {
                     case "MagicNumberFen":
-                        magicNumberFen = ulong.Parse(value);
+                        magicNumberFen = long.Parse(value);
                         break;
-                    case "MagicNumbersW":
-                        magicNumbersW = value.Split(',').Select(ulong.Parse).ToArray();
+                    case "MagicNumbersWTop":
+                        magicNumbersWTop = value.Split(',').Select(long.Parse).ToArray();
                         break;
-                    case "MagicNumbersB":
-                        magicNumbersB = value.Split(',').Select(ulong.Parse).ToArray();
+                    case "MagicNumbersBTop":
+                        magicNumbersBTop = value.Split(',').Select(long.Parse).ToArray();
+                        break;
+                    case "MagicNumbersWBot":
+                        magicNumbersWBot = value.Split(',').Select(long.Parse).ToArray();
+                        break;
+                    case "MagicNumbersBBot":
+                        magicNumbersBBot = value.Split(',').Select(long.Parse).ToArray();
                         break;
                 }
             }
@@ -55,9 +66,11 @@ public class MyBot : IChessBot
         }
     }
 
-    static ulong SimpleHash(string input)
+    // ONLY FOR TRAINING, TO DELETE LATER ---
+
+    static long SimpleHash(string input)
     {
-        ulong hash = 0;
+        long hash = 0;
         foreach (char c in input)
         {
             hash = (hash * 31) + c;
@@ -65,17 +78,24 @@ public class MyBot : IChessBot
         return hash;
     }
 
-    private ulong EvalBitBoards(Board board, bool isW)
+    private long EvalBitBoards(Board board, bool isW)
     {
         var fenStringFactor = SimpleHash(board.GetFenString()) * magicNumberFen;
         int whiteFactor = isW ? 1 : -1;
-        ulong score = 0;
+        long score = 0;
         for (int i = 1; i < 6; i++)
         {
-            ulong bitW = board.GetPieceBitboard((PieceType)i, true);
-            ulong bitB = board.GetPieceBitboard((PieceType)i, false);
+            uint bitW_T = (uint)(board.GetPieceBitboard((PieceType)i, true) >> 32);
+            uint bitB_T = (uint)(board.GetPieceBitboard((PieceType)i, false) >> 32);
+            uint bitW_B = (uint)board.GetPieceBitboard((PieceType)i, true);
+            uint bitB_B = (uint)board.GetPieceBitboard((PieceType)i, false);
 
-            score += (ulong)whiteFactor * (magicNumbersW[i] * bitW - magicNumbersB[i] * bitB);
+            score += whiteFactor * (
+                magicNumbersWTop[i] * bitW_T
+                + magicNumbersWBot[i] * bitW_B
+                - magicNumbersBTop[i] * bitB_T
+                - magicNumbersBBot[i] * bitB_B
+                );
         }
         return score * fenStringFactor;
     }
@@ -84,12 +104,12 @@ public class MyBot : IChessBot
     {
         bool isW = board.IsWhiteToMove;
         Move[] moves = board.GetLegalMoves();
-        (ulong score, int index) bestMove = (ulong.MinValue, -1);
+        (long score, int index) bestMove = (long.MinValue, -1);
         for (int i = 0; i < moves.Length; i++)
         {
             board.MakeMove(moves[i]);
 
-            ulong score = EvalBitBoards(board, isW);
+            long score = EvalBitBoards(board, isW);
             if (score > bestMove.score)
             {
                 bestMove = (score, i);
@@ -97,6 +117,7 @@ public class MyBot : IChessBot
 
             board.UndoMove(moves[i]);
         }
+        if (bestMove.index == -1) return moves[0];
         return moves[bestMove.index];
     }
 }
